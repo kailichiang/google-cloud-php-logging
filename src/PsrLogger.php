@@ -25,6 +25,11 @@ use Google\Cloud\Core\Report\MetadataProviderUtils;
 use Google\Cloud\Core\Timestamp;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
+use Monolog\DateTimeImmutable;
+use Monolog\Formatter\NormalizerFormatter;
+use Monolog\Logger as Monologger;
+use Monolog\LogRecord;
+use Monolog\Processor\PsrLogMessageProcessor;
 
 /**
  * A PSR-3 compliant logger used to write entries to Google Stackdriver Logging.
@@ -168,7 +173,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function emergency($message, array $context = [])
+    public function emergency(\Stringable|string $message, array $context = []): void
     {
         $this->log(Logger::EMERGENCY, $message, $context);
     }
@@ -186,7 +191,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function alert($message, array $context = [])
+    public function alert(string|\Stringable $message, array $context = []): void
     {
         $this->log(Logger::ALERT, $message, $context);
     }
@@ -204,7 +209,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function critical($message, array $context = [])
+    public function critical(string|\Stringable $message, array $context = []): void
     {
         $this->log(Logger::CRITICAL, $message, $context);
     }
@@ -222,7 +227,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function error($message, array $context = [])
+    public function error(string|\Stringable $message, array $context = []): void
     {
         $this->log(Logger::ERROR, $message, $context);
     }
@@ -240,7 +245,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function warning($message, array $context = [])
+    public function warning(string|\Stringable $message, array $context = []): void
     {
         $this->log(Logger::WARNING, $message, $context);
     }
@@ -258,7 +263,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function notice($message, array $context = [])
+    public function notice(string|\Stringable $message, array $context = []): void
     {
         $this->log(Logger::NOTICE, $message, $context);
     }
@@ -276,7 +281,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function info($message, array $context = [])
+    public function info(string|\Stringable $message, array $context = []): void
     {
         $this->log(Logger::INFO, $message, $context);
     }
@@ -294,7 +299,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      *        for the available options.
      * @return void
      */
-    public function debug($message, array $context = [])
+    public function debug(string|\Stringable $message, array $context = []): void
     {
         $this->log(Logger::DEBUG, $message, $context);
     }
@@ -371,7 +376,7 @@ class PsrLogger implements LoggerInterface, \Serializable
      * @return void
      * @throws \InvalidArgumentException
      */
-    public function log($level, $message, array $context = [])
+    public function log($level, string|\Stringable $message, array $context = []): void
     {
         $this->validateLogLevel($level);
         $options = [];
@@ -387,6 +392,16 @@ class PsrLogger implements LoggerInterface, \Serializable
         }
 
         $processedData = $this->logMessageProcessor->processLogMessage($message, $context);
+        $formatter = new NormalizerFormatter();
+        $processor = new PsrLogMessageProcessor();
+        $processedData = $processor(new LogRecord(
+            message: (string) $message,
+            context: $context,
+            level: Monologger::toMonologLevel($level),
+            channel: '',
+            datetime: new DateTimeImmutable(true),
+            extra: [],
+        ));
         $jsonPayload = [$this->messageKey => $processedData['message']];
 
         // Adding labels for log request correlation.
