@@ -3,6 +3,9 @@
     "description": "Stackdriver Logging Client for PHP",
     "license": "Apache-2.0",
     "minimum-stability": "stable",
+        "replace": {
+        "google/google-cloud-php-logging": "*"
+    },
     "require": {
         "php": ">=7.4",
         "google/cloud-core": "^1.39",
